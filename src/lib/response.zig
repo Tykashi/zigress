@@ -47,7 +47,6 @@ pub const Response = struct {
         self.sent = true;
 
         const response_bytes = try self.buildResponse();
-        std.log.info("Response Bytes: {s}", .{response_bytes});
         _ = try std.posix.write(self.client_fd, response_bytes);
     }
 
@@ -73,7 +72,6 @@ pub const Response = struct {
         const headers_joined = try std.mem.join(self.allocator, "", header_lines.items);
         const status_text = statusMessage(self.status_code);
 
-        std.log.info("Headers Joined: {s}", .{headers_joined});
         const head = try std.fmt.allocPrint(
             self.allocator,
             "{s} {d} {s}\r\n{s}\r\n",
