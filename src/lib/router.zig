@@ -42,15 +42,17 @@ pub fn insert(self: *Router, method: []const u8, path: []const u8, handler: Hand
 }
 
 pub fn search(self: *Router, method: []const u8, path: []const u8) ?Handler {
-    var node = self.root;
+    var node = &self.root;
     var iterator = std.mem.tokenizeAny(u8, path, "/");
+
     while (iterator.next()) |segment| {
-        const child = node.children.get(segment) orelse break;
-        if (child.terminal and child.handlers.contains(method)) {
-            const handlerr = child.handlers.getPtr(method) orelse break;
-            return handlerr.*;
-        }
+        const child = node.children.get(segment) orelse return null;
         node = child;
     }
+
+    if (node.terminal) {
+        return node.handlers.get(method);
+    }
+
     return null;
 }
