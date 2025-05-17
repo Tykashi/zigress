@@ -66,48 +66,48 @@ pub const Server = struct {
     fn workerMain(queue: *MPMCQueue(std.posix.socket_t), server: *Server) !void {
         while (true) {
             const sock = queue.dequeue();
-            var stream = std.net.Stream{ .handle = sock };
+            defer std.posix.close(sock);
 
-            var reader = stream.reader();
-            var buf: [4096]u8 = undefined;
-
-            const read_len = reader.read(&buf) catch |err| {
-                std.log.err("Failed to read from socket: {}", .{err});
-                stream.close();
+            var raw_msg: [32768]u8 = undefined;
+            const read_len = std.posix.read(sock, &raw_msg) catch |err| {
+                std.log.err("Failed to read: {}", .{err});
                 continue;
             };
 
-            const request_data = buf[0..read_len];
+            if (read_len == 0) continue;
 
-            // Arena per-request
+            const request_data = raw_msg[0..read_len];
+
+            // Per-request allocator
             var arena = std.heap.ArenaAllocator.init(server.allocator);
             defer arena.deinit();
             const allocator = arena.allocator();
 
+            // Parse request
             var request = Request.parse(request_data, allocator) catch |err| {
                 std.log.err("Failed to parse request: {}", .{err});
-                stream.close();
                 continue;
             };
 
             std.log.info("Received request: {s} {s}", .{ request.method, request.path });
 
+            // Allocate response
             var response = try allocator.create(Response);
             response.* = Response.init(allocator, sock);
             defer response.deinit();
 
-            // Dispatch to route
+            // Route dispatch
             const route = server.router.search(request.method, request.path);
-
-            if (route) |r| {
-                try r(&request, response);
+            if (route) |handler| {
+                try handler(&request, response);
+            } else {
+                response.setStatus(404);
+                try response.write("404 Not Found");
             }
 
             if (!response.sent) {
                 try response.send();
             }
-
-            stream.close();
         }
     }
 
