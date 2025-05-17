@@ -92,14 +92,15 @@ pub const Server = struct {
 
             std.log.info("Received request: {s} {s}", .{ request.method, request.path });
 
-            var response = Response.init(allocator, sock);
+            var response = try server.allocator.create(Response);
+            response.* = Response.init(allocator, sock);
             defer response.deinit();
 
             // Dispatch to route
             const route = server.router.search(request.method, request.path);
 
             if (route) |r| {
-                try r(&request, &response);
+                try r(&request, response);
             }
 
             if (!response.sent) {
