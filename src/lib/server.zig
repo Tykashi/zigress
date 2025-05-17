@@ -92,7 +92,7 @@ pub const Server = struct {
 
             std.log.info("Received request: {s} {s}", .{ request.method, request.path });
 
-            var response = try server.allocator.create(Response);
+            var response = try allocator.create(Response);
             response.* = Response.init(allocator, sock);
             defer response.deinit();
 
