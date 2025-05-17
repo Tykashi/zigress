@@ -47,7 +47,7 @@ pub fn search(self: *Router, method: []const u8, path: []const u8) ?Handler {
 
     while (iterator.next()) |segment| {
         const child = node.children.get(segment) orelse return null;
-        node = child;
+        node = &child.*;
     }
 
     if (node.terminal) {
