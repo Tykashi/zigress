@@ -46,7 +46,7 @@ pub fn search(self: *Router, method: []const u8, path: []const u8) ?Handler {
     var iterator = std.mem.tokenizeAny(u8, path, "/");
 
     while (iterator.next()) |segment| {
-        const child = node.children.get(segment) orelse return null;
+        var child = node.children.get(segment) orelse return null;
         node = &child;
     }
 
