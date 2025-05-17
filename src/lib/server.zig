@@ -78,25 +78,19 @@ pub const Server = struct {
 
             const request_data = raw_msg[0..read_len];
 
-            // Per-request allocator
             var arena = std.heap.ArenaAllocator.init(server.allocator);
             defer arena.deinit();
             const allocator = arena.allocator();
 
-            // Parse request
             var request = Request.parse(request_data, allocator) catch |err| {
                 std.log.err("Failed to parse request: {}", .{err});
                 continue;
             };
 
-            std.log.info("Received request: {s} {s}", .{ request.method, request.path });
-
-            // Allocate response
             var response = try allocator.create(Response);
             response.* = Response.init(allocator, sock);
             defer response.deinit();
 
-            // Route dispatch
             const route = server.router.search(request.method, request.path);
             if (route) |handler| {
                 try handler(&request, response);
