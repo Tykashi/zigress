@@ -34,7 +34,7 @@ pub const Server = struct {
             t.* = try std.Thread.spawn(.{}, Server.workerMain, .{ queue, self });
         }
 
-        const router = Router.init(allocator);
+        const router = try Router.init(allocator);
 
         self.* = Server{
             .allocator = allocator,
