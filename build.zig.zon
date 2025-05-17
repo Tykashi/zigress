@@ -37,8 +37,8 @@
     // internet connectivity.
     .dependencies = .{
         .zdsa = .{
-            .url = "git+https://github.com/Tykashi/zdsa.git#a25e3d6cb4772de4018245486c41f64fa3cec91b",
-            .hash = "zdsa-0.0.0-esChijkWAAD0wcHzdHXEZvdr0hc4SpZPBArePn4T0pkf",
+            .url = "git+https://github.com/Tykashi/zdsa.git#8ffe1efb631180bcdcd581283f855c0451e63fa9",
+            .hash = "zdsa-0.0.0-esChijgWAABYVDsuuZa1px2sprwdoFD-vYAEdEduEhjE",
         },
     },
     .paths = .{
