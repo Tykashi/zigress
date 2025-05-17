@@ -47,6 +47,7 @@ pub const Response = struct {
         self.sent = true;
 
         const response_bytes = try self.buildResponse();
+        std.log.info("Response Bytes: {s}", .{response_bytes});
         _ = try std.posix.write(self.client_fd, response_bytes);
     }
 
@@ -117,4 +118,3 @@ pub const Response = struct {
         };
     }
 };
-
