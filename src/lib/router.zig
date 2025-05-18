@@ -1,15 +1,15 @@
 const std = @import("std");
-const ContextHandler = @import("./handler.zig").ContextHandler;
+const Handler = @import("./handler.zig").Handler;
 
 pub const Node = struct {
     children: std.StringHashMap(*Node),
     terminal: bool = false,
-    handlers: std.StringHashMap(ContextHandler),
+    handlers: std.StringHashMap(Handler),
 
     pub fn init(allocator: std.mem.Allocator) Node {
         return .{
             .children = std.StringHashMap(*Node).init(allocator),
-            .handlers = std.StringHashMap(ContextHandler).init(allocator),
+            .handlers = std.StringHashMap(Handler).init(allocator),
         };
     }
 
@@ -42,7 +42,7 @@ pub const Router = struct {
         self.allocator.destroy(self.root);
     }
 
-    pub fn insert(self: *Router, method: []const u8, path: []const u8, handler: ContextHandler) !void {
+    pub fn insert(self: *Router, method: []const u8, path: []const u8, handler: Handler) !void {
         std.log.info("Inserting route: method={s}, path={s}", .{ method, path });
 
         var node = self.root;
@@ -73,7 +73,7 @@ pub const Router = struct {
         std.log.info("    ✔ Handler registered for method={s} at path={s}", .{ method, path });
     }
 
-    pub fn search(self: *Router, method: []const u8, path: []const u8) ?ContextHandler {
+    pub fn search(self: *Router, method: []const u8, path: []const u8) ?Handler {
         std.log.info("Searching for route: method={s}, path={s}", .{ method, path });
 
         var node = self.root;

@@ -105,21 +105,9 @@ pub const Server = struct {
         }
     }
 
-    
-    pub fn GET(self: *Server, path: []const u8, context: anytype, handler: fn (@TypeOf(context), *Request, *Response) anyerror!void) !void {
-        const wrapped = ContextualHandler{
-            .context = @ptrCast(*anyopaque, context),
-            .func = struct {
-                fn trampoline(ctx: *anyopaque, req: *Request, res: *Response) anyerror!void {
-                    const typed_ctx = @ptrCast(@TypeOf(context), ctx);
-                    return handler(typed_ctx, req, res);
-                }
-            }.trampoline,
-        };
-
-        try self.router.insert("GET", path, wrapped);
+    pub fn GET(self: *Server, path: []const u8, handler: Handler) anyerror!void {
+        try self.router.insert("GET", path, handler);
     }
-
 
     pub fn PUT(self: *Server, path: []const u8, handler: Handler) anyerror!void {
         try self.router.insert("PUT", path, handler);
