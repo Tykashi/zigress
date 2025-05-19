@@ -5,6 +5,7 @@ const Request = @import("request.zig").Request;
 const Response = @import("response.zig").Response;
 const Router = @import("router.zig").Router;
 const Handler = @import("handler.zig").Handler;
+
 pub const Server = struct {
     allocator: std.mem.Allocator,
 
@@ -104,11 +105,9 @@ pub const Server = struct {
             }
         }
     }
-
     pub fn GET(self: *Server, path: []const u8, handler: Handler) anyerror!void {
         try self.router.insert("GET", path, handler);
     }
-
     pub fn PUT(self: *Server, path: []const u8, handler: Handler) anyerror!void {
         try self.router.insert("PUT", path, handler);
     }
