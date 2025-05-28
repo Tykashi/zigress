@@ -105,6 +105,11 @@ pub const Server = struct {
             }
         }
     }
+
+    fn CORS(self: *Server, path: []const u8, handler: Handler) !void {
+        try self.router.insert("OPTIONS", path, handler);
+    }
+
     pub fn GET(self: *Server, path: []const u8, handler: Handler) anyerror!void {
         try self.router.insert("GET", path, handler);
     }

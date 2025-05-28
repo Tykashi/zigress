@@ -1,7 +1,5 @@
 const std = @import("std");
 const Handler = @import("./handler.zig").Handler;
-const Request = @import("request.zig").Request;
-const Response = @import("response.zig").Response;
 
 pub const Node = struct {
     children: std.StringHashMap(*Node),
@@ -44,13 +42,7 @@ pub const Router = struct {
         self.allocator.destroy(self.root);
     }
 
-    pub fn insert(
-        self: *Router,
-        method: []const u8,
-        path: []const u8,
-        handler: Handler,
-        with_options: bool,
-    ) !void {
+    pub fn insert(self: *Router, method: []const u8, path: []const u8, handler: Handler) !void {
         std.log.info("Inserting route: method={s}, path={s}", .{ method, path });
 
         var node = self.root;
@@ -59,21 +51,18 @@ pub const Router = struct {
             const entry = try node.handlers.getOrPut(method);
             entry.value_ptr.* = handler;
             std.log.info("  ✔ Registered root handler for method={s}", .{method});
-            if (with_options and !node.handlers.contains("OPTIONS")) {
-                const opt_entry = try node.handlers.getOrPut("OPTIONS");
-                opt_entry.value_ptr.* = corsOptionsHandler;
-                std.log.info("  ↳ Registered OPTIONS handler for method=OPTIONS at root");
-            }
             return;
         }
 
         var iterator = std.mem.tokenizeAny(u8, path, "/");
         while (iterator.next()) |segment| {
+            std.log.info("  → Segment: {s}", .{segment});
             const entry = try node.children.getOrPut(segment);
             if (!entry.found_existing) {
                 const new_node = try self.allocator.create(Node);
                 new_node.* = Node.init(self.allocator);
                 entry.value_ptr.* = new_node;
+                std.log.info("    ↳ Created new node for segment: {s}", .{segment});
             }
             node = entry.value_ptr.*;
         }
@@ -81,14 +70,7 @@ pub const Router = struct {
         node.terminal = true;
         const hand_entry = try node.handlers.getOrPut(method);
         hand_entry.value_ptr.* = handler;
-
-        if (with_options and !node.handlers.contains("OPTIONS")) {
-            const opt_entry = try node.handlers.getOrPut("OPTIONS");
-            opt_entry.value_ptr.* = corsOptionsHandler;
-            std.log.info("  ↳ Registered OPTIONS handler for method=OPTIONS at path={s}", .{path});
-        }
-
-        std.log.info("  ✔ Handler registered for method={s} at path={s}", .{ method, path });
+        std.log.info("    ✔ Handler registered for method={s} at path={s}", .{ method, path });
     }
 
     pub fn search(self: *Router, method: []const u8, path: []const u8) ?Handler {
@@ -125,11 +107,3 @@ pub const Router = struct {
         }
     }
 };
-
-fn corsOptionsHandler(_: *Request, res: *Response) anyerror!void {
-    try res.setHeader("Access-Control-Allow-Origin", "*");
-    try res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    try res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    res.setStatus(204); // No Content
-    try res.send();
-}
