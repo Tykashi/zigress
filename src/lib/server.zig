@@ -15,7 +15,7 @@ pub const Server = struct {
     queue: *MPMCQueue(std.posix.socket_t),
     workers: []std.Thread,
     router: Router,
-
+    middleware: std.ArrayList(Handler),
     pub fn init(
         allocator: std.mem.Allocator,
         config: ServerConfig,
@@ -35,6 +35,7 @@ pub const Server = struct {
             t.* = try std.Thread.spawn(.{}, Server.workerMain, .{ queue, self });
         }
 
+        self.middleware = std.ArrayList(Handler).init(allocator);
         const router = try Router.init(allocator);
 
         self.* = Server{
@@ -94,6 +95,11 @@ pub const Server = struct {
 
             const route = server.router.search(request.method, request.path);
             if (route) |handler| {
+                if (server.middleware.items.len > 0) {
+                    for (server.middleware.items) |mw| {
+                        try mw(request, response);
+                    }
+                }
                 try handler(&request, response);
             } else {
                 response.setStatus(404);
@@ -104,6 +110,10 @@ pub const Server = struct {
                 try response.send();
             }
         }
+    }
+
+    pub fn USE(self: *Server, handler: Handler) !void {
+        try self.middleware.append(handler);
     }
 
     fn CORS(self: *Server, path: []const u8, handler: Handler) !void {
@@ -141,5 +151,6 @@ pub const Server = struct {
         self.queue.deinit(self.allocator);
         self.allocator.free(self.workers);
         self.allocator.destroy(self);
+        self.middleware.deinit();
     }
 };
