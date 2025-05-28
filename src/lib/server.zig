@@ -93,13 +93,14 @@ pub const Server = struct {
             response.* = Response.init(allocator, sock);
             defer response.deinit();
 
+            if (server.middleware.items.len > 0) {
+                for (server.middleware.items) |mw| {
+                    try mw(&request, response);
+                }
+            }
+
             const route = server.router.search(request.method, request.path);
             if (route) |handler| {
-                if (server.middleware.items.len > 0) {
-                    for (server.middleware.items) |mw| {
-                        try mw(&request, response);
-                    }
-                }
                 try handler(&request, response);
             } else {
                 response.setStatus(404);
