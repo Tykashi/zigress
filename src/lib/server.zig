@@ -35,7 +35,6 @@ pub const Server = struct {
             t.* = try std.Thread.spawn(.{}, Server.workerMain, .{ queue, self });
         }
 
-        self.middleware = std.ArrayList(Handler).init(allocator);
         const router = try Router.init(allocator);
 
         self.* = Server{
@@ -46,6 +45,7 @@ pub const Server = struct {
             .workers = threads,
             .config = config,
             .router = router,
+            .middleware = std.ArrayList(Handler).init(allocator),
         };
 
         return self;
@@ -97,7 +97,7 @@ pub const Server = struct {
             if (route) |handler| {
                 if (server.middleware.items.len > 0) {
                     for (server.middleware.items) |mw| {
-                        try mw(request, response);
+                        try mw(&request, response);
                     }
                 }
                 try handler(&request, response);
