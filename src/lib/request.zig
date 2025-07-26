@@ -57,17 +57,15 @@ pub const Request = struct {
 
         const available = buf.len - body_start;
         if (available < body_len) {
-            return ParseResult.NeedMore((body_len - available));
+            return ParseResult{ .NeedMore = (body_len - available) };
         }
-
         const body = buf[body_start .. body_start + body_len];
-
-        return ParseResult.Complete(Request{
+        return ParseResult{ .Complete = Request{
             .method = method,
             .path = path,
             .version = version,
             .headers = try headers.toOwnedSlice(),
             .body = body,
-        });
+        } };
     }
 };
