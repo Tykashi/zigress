@@ -1,5 +1,10 @@
 const std = @import("std");
 
+pub const ParseResult = union(enum) {
+    Complete: Request,
+    NeedMore: usize, // how many more bytes needed
+};
+
 pub const Request = struct {
     method: []const u8,
     path: []const u8,
@@ -19,7 +24,7 @@ pub const Request = struct {
         return null;
     }
 
-    pub fn parse(buf: []const u8, arena: std.mem.Allocator) !Request {
+    pub fn parse(buf: []const u8, arena: std.mem.Allocator) !ParseResult {
         const header_end = std.mem.indexOf(u8, buf, "\r\n\r\n") orelse return error.MissingHeaderTerminator;
         const header_bytes = buf[0..header_end];
         const body_start = header_end + 4;
@@ -49,17 +54,20 @@ pub const Request = struct {
         const body_len = if (Request.getHeader(headers.items, "Content-Length")) |len_str| blk: {
             break :blk try std.fmt.parseInt(usize, len_str, 10);
         } else 0;
+
         const available = buf.len - body_start;
-        if (available < body_len) return error.IncompleteBody;
+        if (available < body_len) {
+            return ParseResult.NeedMore((body_len - available));
+        }
 
         const body = buf[body_start .. body_start + body_len];
 
-        return Request{
+        return ParseResult.Complete(Request{
             .method = method,
             .path = path,
             .version = version,
             .headers = try headers.toOwnedSlice(),
             .body = body,
-        };
+        });
     }
 };
