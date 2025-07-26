@@ -70,38 +70,62 @@ pub const Server = struct {
             const sock = queue.dequeue();
             defer std.posix.close(sock);
 
-            var raw_msg: [32768]u8 = undefined;
-            const read_len = std.posix.read(sock, &raw_msg) catch |err| {
-                std.log.err("Failed to read: {}", .{err});
-                continue;
-            };
-
-            if (read_len == 0) continue;
-
-            const request_data = raw_msg[0..read_len];
+            var buffer: [32768]u8 = undefined;
+            var total_read: usize = 0;
 
             var arena = std.heap.ArenaAllocator.init(server.allocator);
             defer arena.deinit();
             const allocator = arena.allocator();
 
-            var request = Request.parse(request_data, allocator) catch |err| {
-                std.log.err("Failed to parse request: {}", .{err});
-                continue;
-            };
-
             var response = try allocator.create(Response);
             response.* = Response.init(allocator, sock);
             defer response.deinit();
 
-            if (server.middleware.items.len > 0) {
-                for (server.middleware.items) |mw| {
-                    try mw(&request, response);
+            var request: ?Request = null;
+
+            // Read until we have a complete request or fail
+            while (true) {
+                const n = std.posix.read(sock, buffer[total_read..]) catch |err| {
+                    std.log.err("Failed to read: {}", .{err});
+                    break;
+                };
+                if (n == 0) break; // connection closed
+                total_read += n;
+
+                const parse_result = Request.parse(buffer[0..total_read], allocator) catch |err| {
+                    std.log.err("Failed to parse request: {}", .{err});
+                    break;
+                };
+
+                switch (parse_result) {
+                    .NeedMore => |_| {
+                        if (total_read >= buffer.len) {
+                            std.log.err("Request too large", .{});
+                            break;
+                        }
+                        continue; // read more data
+                    },
+                    .Complete => |req| {
+                        request = req;
+                        break;
+                    },
                 }
             }
 
-            const route = server.router.search(request.method, request.path);
+            if (request == null) continue;
+            const req_ptr = &request.?;
+
+            // Apply middleware
+            if (server.middleware.items.len > 0) {
+                for (server.middleware.items) |mw| {
+                    try mw(req_ptr, response);
+                }
+            }
+
+            // Route matching
+            const route = server.router.search(req_ptr.method, req_ptr.path);
             if (route) |handler| {
-                try handler(&request, response);
+                try handler(req_ptr, response);
             } else {
                 response.setStatus(404);
                 try response.write("404 Not Found");
