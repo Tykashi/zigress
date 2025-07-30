@@ -81,6 +81,24 @@ pub const Response = struct {
         return try std.mem.concat(self.allocator, u8, &.{ head, body });
     }
 
+    pub fn writeJSON(self: *Response, value: anytype) !void {
+        try self.addHeader("Content-Type", "application/json");
+        var buffer = std.ArrayList(u8).init(self.allocator);
+        defer buffer.deinit();
+        try std.json.stringify(value, .{}, buffer.writer());
+        try self.write(buffer.items);
+    }
+
+    pub fn sendJSON(self: *Response, status: u16, value: anytype) !void {
+        self.setStatus(status);
+        try self.addHeader("Content-Type", "application/json");
+        var buffer = std.ArrayList(u8).init(self.allocator);
+        defer buffer.deinit();
+        try std.json.stringify(value, .{}, buffer.writer());
+        try self.write(buffer.items);
+        try self.send();
+    }
+
     fn hasHeader(self: *Response, key: []const u8) bool {
         for (self.headers.items) |h| {
             if (std.ascii.eqlIgnoreCase(h.key, key)) return true;
