@@ -43,14 +43,11 @@ pub const Router = struct {
     }
 
     pub fn insert(self: *Router, method: []const u8, path: []const u8, handler: Handler) !void {
-        std.log.info("Inserting route: method={s}, path={s}", .{ method, path });
-
         var node = self.root;
         if (std.mem.eql(u8, path, "/")) {
             node.terminal = true;
             const entry = try node.handlers.getOrPut(method);
             entry.value_ptr.* = handler;
-            std.log.info("  ✔ Registered root handler for method={s}", .{method});
             return;
         }
 
@@ -62,7 +59,6 @@ pub const Router = struct {
                 const new_node = try self.allocator.create(Node);
                 new_node.* = Node.init(self.allocator);
                 entry.value_ptr.* = new_node;
-                std.log.info("    ↳ Created new node for segment: {s}", .{segment});
             }
             node = entry.value_ptr.*;
         }
@@ -70,28 +66,21 @@ pub const Router = struct {
         node.terminal = true;
         const hand_entry = try node.handlers.getOrPut(method);
         hand_entry.value_ptr.* = handler;
-        std.log.info("    ✔ Handler registered for method={s} at path={s}", .{ method, path });
     }
 
     pub fn search(self: *Router, method: []const u8, path: []const u8) ?Handler {
-        std.log.info("Searching for route: method={s}, path={s}", .{ method, path });
-
         var node = self.root;
         if (std.mem.eql(u8, path, "/")) {
             if (node.terminal) {
                 const handler = node.handlers.get(method);
-                std.log.info("  ✔ Found root handler: exists={}", .{handler != null});
                 return handler;
             }
-            std.log.warn("  ✘ Root handler not found or not terminal", .{});
             return null;
         }
 
         var iterator = std.mem.tokenizeAny(u8, path, "/");
         while (iterator.next()) |segment| {
-            std.log.info("  → Looking for segment: {s}", .{segment});
             const child = node.children.get(segment) orelse {
-                std.log.warn("    ✘ No child found for: {s}", .{segment});
                 return null;
             };
             node = child;
@@ -99,10 +88,8 @@ pub const Router = struct {
 
         if (node.terminal) {
             const handler = node.handlers.get(method);
-            std.log.info("  ✔ Final node is terminal. Handler exists={}", .{handler != null});
             return handler;
         } else {
-            std.log.warn("  ✘ Final node not terminal", .{});
             return null;
         }
     }
