@@ -11,6 +11,7 @@ pub const Request = struct {
     version: []const u8,
     headers: []Header,
     body: []const u8,
+    context: std.json.Value, // Dynamic object for middleware/handlers
 
     pub const Header = struct {
         name: []const u8,
@@ -60,12 +61,32 @@ pub const Request = struct {
             return ParseResult{ .NeedMore = (body_len - available) };
         }
         const body = buf[body_start .. body_start + body_len];
-        return ParseResult{ .Complete = Request{
-            .method = method,
-            .path = path,
-            .version = version,
-            .headers = try headers.toOwnedSlice(),
-            .body = body,
-        } };
+
+        // Initialize context as empty JSON object
+        const context_obj = try std.json.Value.object(arena);
+
+        return ParseResult{
+            .Complete = Request{
+                .method = method,
+                .path = path,
+                .version = version,
+                .headers = try headers.toOwnedSlice(),
+                .body = body,
+                .context = context_obj,
+            },
+        };
+    }
+
+    /// Set a key-value pair in context
+    pub fn setContextString(self: *Request, key: []const u8, value: []const u8) !void {
+        try self.context.objectPutString(key, value);
+    }
+
+    /// Get a string from context
+    pub fn getContextString(self: *Request, key: []const u8) ?[]const u8 {
+        if (self.context.objectGet(key)) |val| {
+            return if (val.string) |s| s else null;
+        }
+        return null;
     }
 };
