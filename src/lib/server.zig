@@ -77,23 +77,26 @@ pub const Server = struct {
             defer arena.deinit();
             const allocator = arena.allocator();
 
-            var response = try allocator.create(Response);
+            var response = allocator.create(Response) catch |err| {
+                std.log.err("Failed to create response: {s}", .{@errorName(err)});
+                continue;
+            };
             response.* = Response.init(allocator, sock);
             defer response.deinit();
 
             var request: ?Request = null;
 
-            // Read until we have a complete request or fail
+            // Read until complete request or fail
             while (true) {
                 const n = std.posix.read(sock, buffer[total_read..]) catch |err| {
-                    std.log.err("Failed to read: {}", .{err});
+                    std.log.err("Read error: {s}", .{@errorName(err)});
                     break;
                 };
-                if (n == 0) break; // connection closed
+                if (n == 0) break; // client closed
                 total_read += n;
 
                 const parse_result = Request.parse(buffer[0..total_read], allocator) catch |err| {
-                    std.log.err("Failed to parse request: {}", .{err});
+                    std.log.err("Parse error: {s}", .{@errorName(err)});
                     break;
                 };
 
@@ -103,7 +106,7 @@ pub const Server = struct {
                             std.log.err("Request too large", .{});
                             break;
                         }
-                        continue; // read more data
+                        continue;
                     },
                     .Complete => |req| {
                         request = req;
@@ -115,24 +118,31 @@ pub const Server = struct {
             if (request == null) continue;
             const req_ptr = &request.?;
 
-            // Apply middleware
-            if (server.middleware.items.len > 0) {
-                for (server.middleware.items) |mw| {
-                    try mw(req_ptr, response);
+            for (server.middleware.items) |mw| {
+                if (mw(req_ptr, response)) |err| {
+                    std.log.err("Middleware error: {s}", .{@errorName(err)});
+                    response.setStatus(500);
+                    _ = response.write("Internal Server Error") catch {};
+                    break; // stop further processing
                 }
             }
 
-            // Route matching
             const route = server.router.search(req_ptr.method, req_ptr.path);
             if (route) |handler| {
-                try handler(req_ptr, response);
+                if (handler(req_ptr, response)) |err| {
+                    std.log.err("Handler error: {s}", .{@errorName(err)});
+                    response.setStatus(500);
+                    _ = response.write("Internal Server Error") catch {};
+                }
             } else {
                 response.setStatus(404);
-                try response.write("404 Not Found");
+                _ = response.write("404 Not Found") catch {};
             }
 
             if (!response.sent) {
-                try response.send();
+                _ = response.send() catch |err| {
+                    std.log.err("Send error: {s}", .{@errorName(err)});
+                };
             }
         }
     }
