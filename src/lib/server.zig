@@ -119,12 +119,12 @@ pub const Server = struct {
             const req_ptr = &request.?;
 
             for (server.middleware.items) |mw| {
-                if (mw(req_ptr, response)) |err| {
+                mw(req_ptr, response) catch |err| {
                     std.log.err("Middleware error: {s}", .{@errorName(err)});
                     response.setStatus(500);
                     _ = response.write("Internal Server Error") catch {};
-                    break; // stop further processing
-                }
+                    break;
+                };
             }
 
             const route = server.router.search(req_ptr.method, req_ptr.path);
