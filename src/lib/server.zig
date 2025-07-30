@@ -129,16 +129,15 @@ pub const Server = struct {
 
             const route = server.router.search(req_ptr.method, req_ptr.path);
             if (route) |handler| {
-                if (handler(req_ptr, response)) |err| {
+                handler(req_ptr, response) catch |err| {
                     std.log.err("Handler error: {s}", .{@errorName(err)});
                     response.setStatus(500);
                     _ = response.write("Internal Server Error") catch {};
-                }
+                };
             } else {
                 response.setStatus(404);
                 _ = response.write("404 Not Found") catch {};
             }
-
             if (!response.sent) {
                 _ = response.send() catch |err| {
                     std.log.err("Send error: {s}", .{@errorName(err)});
