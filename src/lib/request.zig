@@ -63,7 +63,10 @@ pub const Request = struct {
         const body = buf[body_start .. body_start + body_len];
 
         // Initialize context as empty JSON object
-        const context_obj = try std.json.Value.object(arena);
+
+        const context_obj = std.json.Value{
+            .object = std.json.ObjectMap.init(arena),
+        };
 
         return ParseResult{
             .Complete = Request{
@@ -77,12 +80,10 @@ pub const Request = struct {
         };
     }
 
-    /// Set a key-value pair in context
     pub fn setContextString(self: *Request, key: []const u8, value: []const u8) !void {
         try self.context.objectPutString(key, value);
     }
 
-    /// Get a string from context
     pub fn getContextString(self: *Request, key: []const u8) ?[]const u8 {
         if (self.context.objectGet(key)) |val| {
             return if (val.string) |s| s else null;
