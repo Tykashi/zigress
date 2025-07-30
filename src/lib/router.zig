@@ -53,7 +53,6 @@ pub const Router = struct {
 
         var iterator = std.mem.tokenizeAny(u8, path, "/");
         while (iterator.next()) |segment| {
-            std.log.info("  → Segment: {s}", .{segment});
             const entry = try node.children.getOrPut(segment);
             if (!entry.found_existing) {
                 const new_node = try self.allocator.create(Node);
