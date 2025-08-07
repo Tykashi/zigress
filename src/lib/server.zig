@@ -128,6 +128,7 @@ pub const Server = struct {
                     _ = response.write("Internal Server Error") catch {};
                     break;
                 };
+                std.log.info("Sec-Key: {s}", .{sec_key});
                 const page = std.heap.page_allocator;
                 try websocketHandshake(page, sock, sec_key);
                 try handleWebsocket(sock);
