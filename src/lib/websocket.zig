@@ -20,11 +20,11 @@ pub fn websocketHandshake(
     const encoded = base64.Encoder.encode(&buffer, &digest);
 
     const response = try std.fmt.allocPrint(allocator,
-        \\HTTP/1.1 101 Switching Protocols\r
-        \\Upgrade: websocket\r
-        \\Connection: Upgrade\r
-        \\Sec-WebSocket-Accept: {s}\r
-        \\\r
+        \\HTTP/1.1 101 Switching Protocols
+        \\Upgrade: websocket
+        \\Connection: Upgrade
+        \\Sec-WebSocket-Accept: {s}
+        \\
     , .{encoded});
 
     defer allocator.free(response);
@@ -47,3 +47,4 @@ pub fn handleWebSocketConnection(sock: std.posix.socket_t) !void {
         _ = try std.posix.write(sock, buffer[0..n]);
     }
 }
+
