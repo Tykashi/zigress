@@ -6,6 +6,8 @@ const Response = @import("response.zig").Response;
 const Router = @import("router.zig").Router;
 const Handler = @import("handler.zig").Handler;
 
+const websocketHandshake = @import("websocket.zig").websocketHandshake;
+const handleWebsocket = @import("websocket.zig").handleWebSocketConnection;
 pub const Server = struct {
     allocator: std.mem.Allocator,
 
@@ -118,6 +120,18 @@ pub const Server = struct {
             if (request == null) continue;
             const req_ptr = &request.?;
 
+            const is_websocket = std.ascii.eqlIgnoreCase(Request.getHeader(req_ptr.*.headers, "Upgrade") orelse "", "websocket");
+            if (is_websocket) {
+                const sec_key = Request.getHeader(req_ptr.*.headers, "sec-websocket-key") orelse {
+                    response.setStatus(500);
+                    _ = response.write("Internal Server Error") catch {};
+                    break;
+                };
+                const page = std.heap.page_allocator;
+                try websocketHandshake(page, sock, sec_key);
+                try handleWebsocket(sock);
+                continue;
+            }
             for (server.middleware.items) |mw| {
                 mw(req_ptr, response) catch |err| {
                     std.log.err("Middleware error: {s}", .{@errorName(err)});
