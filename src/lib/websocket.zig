@@ -25,7 +25,7 @@ pub fn websocketHandshake(
         \\Connection:"Upgrade"
         \\Sec-WebSocket-Accept:"{s}"
         \\Sec-Websocket-Version:"13"
-    , .{encoded});
+    , .{encoded[0..encoded.len]});
 
     defer allocator.free(response);
     std.log.info("Response: \n{s}", .{response});
