@@ -121,6 +121,7 @@ pub const Server = struct {
             const req_ptr = &request.?;
 
             const is_websocket = std.ascii.eqlIgnoreCase(Request.getHeader(req_ptr.*.headers, "Upgrade") orelse "", "websocket");
+            std.log.info("Is Websocket: {any}", .{is_websocket});
             if (is_websocket) {
                 const sec_key = Request.getHeader(req_ptr.*.headers, "sec-websocket-key") orelse {
                     response.setStatus(500);
