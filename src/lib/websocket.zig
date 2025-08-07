@@ -21,10 +21,10 @@ pub fn websocketHandshake(
 
     const response = try std.fmt.allocPrint(allocator,
         \\HTTP/1.1 101
-        \\Upgrade:"websocket"
-        \\Connection:"Upgrade"
-        \\Sec-WebSocket-Accept:"{s}"
-        \\Sec-Websocket-Version:"13"
+        \\Upgrade:websocket
+        \\Connection:Upgrade
+        \\Sec-WebSocket-Accept:{s}
+        \\Sec-Websocket-Version:13
     , .{encoded[0..encoded.len]});
 
     defer allocator.free(response);
@@ -47,3 +47,4 @@ pub fn handleWebSocketConnection(sock: std.posix.socket_t) !void {
         _ = try std.posix.write(sock, buffer[0..n]);
     }
 }
+
