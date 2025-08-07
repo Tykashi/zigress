@@ -28,7 +28,7 @@ pub fn websocketHandshake(
     , .{encoded});
 
     defer allocator.free(response);
-
+    std.log.info("Response: \n{any}", .{response});
     _ = try std.posix.write(sock, response);
 }
 
@@ -47,3 +47,4 @@ pub fn handleWebSocketConnection(sock: std.posix.socket_t) !void {
         _ = try std.posix.write(sock, buffer[0..n]);
     }
 }
+
