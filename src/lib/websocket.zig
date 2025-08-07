@@ -20,11 +20,11 @@ pub fn websocketHandshake(
     const encoded = base64.Encoder.encode(&buffer, &digest);
 
     const response = try std.fmt.allocPrint(allocator,
-        \\HTTP/1.1 101 Switching Protocols
-        \\Upgrade: "websocket"
-        \\Connection: "Upgrade"
-        \\Sec-WebSocket-Accept: "{s}"
-        \\Sec-Websocket-Version: "13"
+        \\HTTP/1.1 101
+        \\Upgrade:"websocket"
+        \\Connection:"Upgrade"
+        \\Sec-WebSocket-Accept:"{s}"
+        \\Sec-Websocket-Version:"13"
         \\
     , .{encoded});
 
