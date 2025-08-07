@@ -38,7 +38,7 @@ pub fn handleWebSocketConnection(sock: std.posix.socket_t) !void {
     while (true) {
         // Read raw WebSocket frame
         const n = try std.posix.read(sock, &buffer);
-        if (n == 0) break;
+        if (n == 0) continue;
 
         // Just log for now
         std.debug.print("Received {d} bytes from WebSocket client\n", .{n});
@@ -47,4 +47,3 @@ pub fn handleWebSocketConnection(sock: std.posix.socket_t) !void {
         _ = try std.posix.write(sock, buffer[0..n]);
     }
 }
-
